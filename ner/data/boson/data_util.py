@@ -4,7 +4,8 @@ import codecs
 import pandas as pd
 import numpy as np
 import re
-from funcy import flatten
+import pickle
+from sklearn.model_selection import train_test_split
 
 
 def origin2tag():
@@ -78,7 +79,7 @@ def data2pkl():
     print(len(datas), tags)
     print(len(labels))
 
-    all_words = flatten(datas)
+    all_words = [item for line in datas for item in line]
     sr_allwords = pd.Series(all_words)
     sr_allwords = sr_allwords.value_counts()
     set_words = sr_allwords.index
@@ -95,8 +96,42 @@ def data2pkl():
     print(word2id)
     max_len = 60
 
+    def X_padding(words):
+        ids = list(word2id[words])
+        if len(ids) >= max_len:
+            return ids[:max_len]
+        ids.extend([0]*(max_len - len(ids)))
+        return ids
 
-    print('Finish data to pkl.')
+    def y_padding(tags):
+        ids = list(tag2id[tags])
+        if len(ids) >= max_len:
+            return ids[:max_len]
+        ids.extend([0] * (max_len - len(ids)))
+        return ids
+
+    df_data = pd.DataFrame({'words': datas, 'tags': labels}, index=range(len(datas)))
+    df_data['x'] = df_data['words'].apply(X_padding)
+    df_data['y'] = df_data['tags'].apply(y_padding)
+    X = np.asarray(list(df_data['x'].values))
+    y = np.asarray(list(df_data['y'].values))
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+    X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=0.2)
+
+    with open('../Bosondata.pkl', 'wb') as outp:
+        pickle.dump(word2id, outp)
+        pickle.dump(id2word, outp)
+        pickle.dump(tag2id, outp)
+        pickle.dump(id2tag, outp)
+        pickle.dump(X_train, outp)
+        pickle.dump(X_valid, outp)
+        pickle.dump(X_test, outp)
+        pickle.dump(y_train, outp)
+        pickle.dump(y_valid, outp)
+        pickle.dump(y_test, outp)
+
+    print('Finish persisting Boson data to pkl.')
 
 
 if __name__ == '__main__':
