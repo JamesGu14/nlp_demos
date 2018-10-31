@@ -6,6 +6,8 @@ import tensorflow as tf
 
 # self defined models
 from Batch import BatchGenerator
+from bilstm_crf import Model
+from utils import train
 
 with open('../data/Bosondata.pkl', 'rb') as inp:
     word2id = pickle.load(inp)
@@ -30,7 +32,7 @@ data_test = BatchGenerator(x_test, y_test, shuffle=False)
 print('Batch data generator created. ')
 
 # Configs
-epochs = 4
+epochs = 31
 batch_size = 32
 config = {}
 config['lr'] = 0.001    # Learning Rate
@@ -55,6 +57,10 @@ elif len(sys.argv) == 3:
 
 else:
     print('begin to train...')
-    
+    model = Model(config, embedding_pre, dropout_keep=0.5)
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        saver = tf.train.Saver()
+        train(model, sess, saver, epochs, batch_size, data_train, data_test, id2word, id2tag)
 
     print('finish training')
